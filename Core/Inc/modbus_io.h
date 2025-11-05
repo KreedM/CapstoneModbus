@@ -12,6 +12,7 @@ void modbus_io_init(
 	TIM_HandleTypeDef* _modbus_io_htim, uint32_t modbus_io_tim_freq		 	// Timer clock frequency
 );
 
+// Make sure buffers are at most/least size MODBUS_IO_BUFFER_SIZE!
 uint32_t modbus_io_write(uint8_t *data, uint32_t len); 	// Returns number of bytes that'll be transmitted
 
 uint32_t modbus_io_read(uint8_t *buffer);				// Returns number of bytes that are read into buffer

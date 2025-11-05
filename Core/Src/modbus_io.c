@@ -1,5 +1,6 @@
 #include "modbus_io.h"
 #include <stdbool.h>
+#include <string.h>
 
 static volatile UART_HandleTypeDef* modbus_io_huart;
 static volatile TIM_HandleTypeDef*  modbus_io_htim;
@@ -9,8 +10,11 @@ static volatile bool frame_new = true, frame_end = true;
 static volatile uint32_t modbus_io_transmit_head = 0, modbus_io_transmit_size = 0;
 static volatile uint8_t modbus_io_transmit_buffer[MODBUS_IO_BUFFER_SIZE];
 
-static volatile uint32_t modbus_io_receive_head = 0,  modbus_io_receive_size = 0;
+static volatile uint32_t modbus_io_receive_size = 0;
 static volatile uint8_t modbus_io_receive_buffer[MODBUS_IO_BUFFER_SIZE];
+
+static volatile uint32_t modbus_io_read_size = 0;
+static volatile uint8_t modbus_io_read_buffer[MODBUS_IO_BUFFER_SIZE];
 
 void modbus_io_init(UART_HandleTypeDef* _modbus_io_huart, uint32_t modbus_io_huart_freq, TIM_HandleTypeDef* _modbus_io_htim, uint32_t modbus_io_tim_freq) {
 	modbus_io_huart = _modbus_io_huart;
@@ -77,8 +81,7 @@ uint32_t modbus_io_write(uint8_t *data, uint32_t len) {
 	else if(len >= MODBUS_IO_BUFFER_SIZE)
 		len = MODBUS_IO_BUFFER_SIZE;
 
-	for(uint32_t i = 0; i < len; ++i)
-		modbus_io_transmit_buffer[i] = data[i];
+	memcpy((void*)modbus_io_transmit_buffer, (void*)data, len);
 
 	modbus_io_transmit_head = 0;
 	modbus_io_transmit_size = len;
@@ -103,34 +106,27 @@ void modbus_io_tc_handler(void) {
 }
 
 uint32_t modbus_io_read(uint8_t *buffer) {
-	if(modbus_io_receive_size == 0 || !frame_end)
+	if(modbus_io_read_size == 0)
 		return 0;
 
-	for(uint32_t i = 0; i < modbus_io_receive_size; ++i)
-		buffer[i] = modbus_io_receive_buffer[i];
+	memcpy((void*)buffer, (void*)modbus_io_read_buffer, modbus_io_read_size);
 
-	uint32_t count = modbus_io_receive_size;
+	uint32_t count = modbus_io_read_size;
 
-	modbus_io_receive_head = 0;
-	modbus_io_receive_size = 0;
+	modbus_io_read_size = 0;
 
 	return count;
 }
 
 void modbus_io_rx_ne_handler(void) {
-	if(frame_new) {
-		modbus_io_receive_head = 0;
+	if(frame_new)
 		modbus_io_receive_size = 0;
-	}
 
 	restart_timer();
 
 	uint8_t rdr = modbus_io_huart->Instance->RDR;
-	if(modbus_io_receive_head < MODBUS_IO_BUFFER_SIZE) {
-		modbus_io_receive_buffer[modbus_io_receive_head++] = rdr;
-
-		++modbus_io_receive_size;
-	}
+	if(modbus_io_receive_size < MODBUS_IO_BUFFER_SIZE)
+		modbus_io_receive_buffer[modbus_io_receive_size++] = rdr;
 
 	if(
 		__HAL_UART_GET_FLAG(modbus_io_huart, UART_FLAG_PE) ||
@@ -154,6 +150,17 @@ void modbus_io_1_5_char_handler(void) {
 
 void modbus_io_3_5_char_handler(void) {
 	frame_end = true;
+
+	if(modbus_io_transmit_size > 0)							// Shouldn't ever happen since device should wait for frame end, process message, then reply
+		__HAL_UART_ENABLE_IT(modbus_io_huart, UART_IT_TC);
+
+	if(modbus_io_receive_size > 0) {						// Separate read buffer is used just in case application takes a while to read, avoids race conditions
+		memcpy((void*)modbus_io_read_buffer, (void*)modbus_io_receive_buffer, modbus_io_receive_size);
+
+		modbus_io_read_size = modbus_io_receive_size;
+
+		modbus_io_receive_size = 0;
+	}
 
 	__HAL_TIM_CLEAR_FLAG(modbus_io_htim, TIM_FLAG_CC2);
 }
