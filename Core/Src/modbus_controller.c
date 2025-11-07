@@ -31,3 +31,23 @@ void modbus_controller_tick(void) {
 
 	process_modbus_message();
 }
+
+uint16_t CRC_calc(uint32_t length)
+{
+    uint8_t temp;
+    uint16_t crc = 0xFFFF;  // Initialize CRC register
+
+    for (uint32_t i = 0; i < length; ++i)
+	{
+    	temp = modbus_controller_buffer[i] ^ crc;  	// XOR byte with low byte of CRC
+		crc >>= 8;                                  // Shift CRC right 8 bits
+		crc ^= crc_table[temp];                     // XOR with table lookup
+	}
+
+    return crc;
+}
+
+
+
+
+
