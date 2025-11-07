@@ -1,8 +1,9 @@
 #ifndef MODBUS_CONSTANTS_H
 #define MODBUS_CONSTANTS_H
 
-#define <stdint.h>
+#include <stdint.h>
 
+#define MODBUS_MIN_MESSAGE_BYTES			4
 #define MODBUS_READ_COILS 					0x01
 #define MODBUS_READ_DISCRETE_INPUTS 		0x02
 #define MODBUS_READ_HOLDING_REGISTERS 		0x03
