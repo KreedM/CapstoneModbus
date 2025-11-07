@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <string.h>
 #include "debug.h"
 #include "modbus_io.h"
 /* USER CODE END Includes */
@@ -113,12 +115,24 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
+	uint8_t modbus_read_buffer[MODBUS_IO_BUFFER_SIZE];
+	char echo[2048];
 
-    /* USER CODE BEGIN 3 */
-  }
+	while (1)
+	{
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+		uint32_t len = modbus_io_read(modbus_read_buffer);
+		if(len > 0) {
+			for (uint32_t i = 0; i < len; ++i)
+				sprintf(&echo[i * 2], "%02X", modbus_read_buffer[i]);
+
+			echo[len * 2] = '\0';
+
+			debug_write((uint8_t*)echo, strlen(echo));
+		}
+	}
   /* USER CODE END 3 */
 }
 

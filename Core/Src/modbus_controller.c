@@ -20,7 +20,7 @@ void modbus_controller_tick(void) {
 	if(modbus_controller_buffer_size < MODBUS_MIN_MESSAGE_BYTES)
 		return;
 
-	if(modbus_controller_buffer[0] != modbus_controller_address)
+	if(modbus_controller_buffer[MODBUS_ADDRESS_INDEX] != modbus_controller_address)
 		return;
 
 	uint16_t crc = (modbus_controller_buffer[modbus_controller_buffer_size - 2] << 8) |
