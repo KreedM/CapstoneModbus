@@ -1,10 +1,10 @@
 #include "modbus_controller.h"
 #include "modbus_io.h"
 
-static volatile uint8_t modbus_controller_address;
+static uint8_t modbus_controller_address;
 
-static volatile uint8_t modbus_controller_buffer_size;
-static volatile uint8_t modbus_controller_buffer[MODBUS_IO_BUFFER_SIZE];
+static uint32_t modbus_controller_buffer_size;
+static uint8_t modbus_controller_buffer[MODBUS_IO_BUFFER_SIZE];
 
 void modbus_controller_init(void) {
 	modbus_controller_address = 0xFF;
@@ -12,7 +12,7 @@ void modbus_controller_init(void) {
 
 void process_modbus_message(void);
 
-uint16_t CRC_calc(uint8_t *data);
+uint16_t CRC_calc(uint32_t length);
 
 void modbus_controller_tick(void) {
 	modbus_controller_buffer_size = modbus_io_read(modbus_controller_buffer);
@@ -23,17 +23,16 @@ void modbus_controller_tick(void) {
 	if(modbus_controller_buffer[0] != modbus_controller_address)
 		return;
 
-	uint16_t CRC = (modbus_controller_buffer[modbus_controller_buffer_size - 2] << 8) |
+	uint16_t crc = (modbus_controller_buffer[modbus_controller_buffer_size - 2] << 8) |
 			   	   (modbus_controller_buffer[modbus_controller_buffer_size - 1]);
 
-	if(CRC != CRC_calc(modbus_controller_buffer_size - 1))
+	if(crc != CRC_calc(modbus_controller_buffer_size - 1))
 		return;
 
 	process_modbus_message();
 }
 
-uint16_t CRC_calc(uint32_t length)
-{
+uint16_t CRC_calc(uint32_t length) {
     uint8_t temp;
     uint16_t crc = 0xFFFF;  // Initialize CRC register
 
