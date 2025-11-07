@@ -22,7 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "debug.h"
-#include "modbus_io.h"
+#include "modbus_controller.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,16 +109,18 @@ int main(void)
   __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC2);
   debug_init(&huart1);
   modbus_io_init(&huart3, HAL_RCC_GetPCLK1Freq(), &htim2, HAL_RCC_GetPCLK1Freq());
+  modbus_controller_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+		modbus_controller_tick();
+	}
   /* USER CODE END 3 */
 }
 
@@ -368,7 +370,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 9600;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
