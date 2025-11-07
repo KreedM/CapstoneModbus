@@ -4,12 +4,17 @@
 #include "modbus_io.h"
 #include "modbus_constants.h"
 
+static volatile uint8_t modbus_controller_address;
+
+static volatile uint8_t modbus_controller_buffer_size;
 static volatile uint8_t modbus_controller_buffer[MODBUS_IO_BUFFER_SIZE];
 
-void modbus_controller_tick(void);
+void modbus_controller_init(void);
+
+void modbus_controller_tick(void); // Call every tick, checks if Modbus message is available and processes it
 
 void process_modbus_message(void);
 
-uint16_t CRC_calc(uint8_t *data, uint32_t length);
+uint16_t CRC_calc(uint32_t length);
 
 #endif
