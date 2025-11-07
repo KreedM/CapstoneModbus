@@ -10,6 +10,6 @@ void modbus_controller_tick(void);
 
 void process_modbus_message(void);
 
-uint16_t CRC_calc(uint8_t *data);
+uint16_t CRC_calc(uint8_t *data, uint32_t length);
 
 #endif
