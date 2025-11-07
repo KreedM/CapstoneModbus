@@ -1,6 +1,11 @@
 #include "modbus_controller.h"
 #include "modbus_io.h"
 
+static volatile uint8_t modbus_controller_address;
+
+static volatile uint8_t modbus_controller_buffer_size;
+static volatile uint8_t modbus_controller_buffer[MODBUS_IO_BUFFER_SIZE];
+
 void modbus_controller_init(void) {
 	modbus_controller_address = 0xFF;
 }
