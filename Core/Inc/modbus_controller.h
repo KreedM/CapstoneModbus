@@ -13,8 +13,4 @@ void modbus_controller_init(void);
 
 void modbus_controller_tick(void); // Call every tick, checks if Modbus message is available and processes it
 
-void process_modbus_message(void);
-
-uint16_t CRC_calc(uint8_t *data);
-
 #endif
