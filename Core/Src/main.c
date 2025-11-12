@@ -105,8 +105,6 @@ int main(void)
   MX_TIM2_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC1);
-  __HAL_TIM_ENABLE_IT(&htim2, TIM_IT_CC2);
   debug_init(&huart1);
   modbus_io_init(&huart3, HAL_RCC_GetPCLK1Freq(), &htim2, HAL_RCC_GetPCLK1Freq());
   modbus_controller_init();

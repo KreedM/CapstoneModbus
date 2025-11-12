@@ -4,7 +4,11 @@
 #include "modbus_io.h"
 #include "modbus_constants.h"
 
-#define MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE 256
+#define MODBUS_CONTROLLER_COILS_BYTE_SIZE 			128
+#define MODBUS_CONTROLLER_DISCRETE_INPUTS_BYTE_SIZE 128
+#define MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE 	128
+#define MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE 		128
+
 
 void modbus_controller_init(void); // Sets address
 

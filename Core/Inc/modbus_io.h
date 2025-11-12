@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "stm32u5xx_hal.h"
 
-#define MODBUS_IO_BUFFER_SIZE 256
+#define MODBUS_IO_BUFFER_SIZE 512
 
 // Enables UART RXNE interrupt and disables UART TXE. Prescales timer to match baud rate, sets it to one pulse mode and configures CC1 & CC2 to character wait times
 void modbus_io_init(
