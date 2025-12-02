@@ -2,7 +2,7 @@
 #define MODBUS_IO_H
 
 #include <stdint.h>
-#include "stm32u5xx_hal.h"
+#include "stm32c0xx_hal.h"
 
 #define MODBUS_IO_BUFFER_SIZE 256
 

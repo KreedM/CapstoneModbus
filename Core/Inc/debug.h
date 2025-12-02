@@ -2,7 +2,7 @@
 #define	DEBUG_H
 
 #include <stdint.h>
-#include "stm32u5xx_hal.h"
+#include "stm32c0xx.h"
 
 #define DEBUG_WRITE_SIZE 2048 						// Actual characters allowed is -1
 #define DEBUG_READ_SIZE  2048

@@ -40,7 +40,7 @@ void modbus_io_init(UART_HandleTypeDef* _modbus_io_huart, uint32_t modbus_io_hua
 
 	modbus_io_htim = _modbus_io_htim;
 
-	modbus_io_htim->Instance->PSC = ((float)modbus_io_tim_freq / modbus_io_huart_freq) * modbus_io_huart->Instance->BRR;
+	modbus_io_htim->Instance->PSC = ((float)modbus_io_tim_freq / modbus_io_huart_freq) * modbus_io_huart->Instance->BRR - 1;
 
 	float bits_per_frame = 1 + (modbus_io_huart->Init.Parity > 0);
 	switch(modbus_io_huart->Init.WordLength) {
