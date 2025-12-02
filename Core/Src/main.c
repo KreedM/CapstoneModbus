@@ -107,7 +107,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   debug_init(&huart1);
   modbus_io_init(&huart3, HAL_RCC_GetPCLK1Freq(), &htim2, HAL_RCC_GetPCLK1Freq());
-  modbus_controller_init();
+  modbus_controller_init(0x42);
   /* USER CODE END 2 */
 
   /* Infinite loop */

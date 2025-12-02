@@ -7,13 +7,14 @@ static volatile TIM_HandleTypeDef*  modbus_io_htim;
 
 static volatile bool frame_new = true, frame_end = true;
 
-static volatile uint32_t modbus_io_transmit_head = 0, modbus_io_transmit_size = 0;
+static volatile uint8_t modbus_io_transmit_head = 0;
+static volatile uint16_t modbus_io_transmit_size = 0;
 static volatile uint8_t modbus_io_transmit_buffer[MODBUS_IO_BUFFER_SIZE];
 
-static volatile uint32_t modbus_io_receive_size = 0;
+static volatile uint16_t modbus_io_receive_size = 0;
 static volatile uint8_t modbus_io_receive_buffer[MODBUS_IO_BUFFER_SIZE];
 
-static volatile uint32_t modbus_io_read_size = 0;
+static volatile uint16_t modbus_io_read_size = 0;
 static volatile uint8_t modbus_io_read_buffer[MODBUS_IO_BUFFER_SIZE];
 
 void modbus_io_init(UART_HandleTypeDef* _modbus_io_huart, uint32_t modbus_io_huart_freq, TIM_HandleTypeDef* _modbus_io_htim, uint32_t modbus_io_tim_freq) {
@@ -75,7 +76,7 @@ void restart_timer(void) {
 	modbus_io_htim->Instance->CR1 |= TIM_CR1_CEN;
 }
 
-uint32_t modbus_io_write(uint8_t *data, uint32_t len) {
+uint16_t modbus_io_write(uint8_t *data, uint16_t len) {
 	if(len == 0)
 		return 0;
 	else if(len >= MODBUS_IO_BUFFER_SIZE)
@@ -105,13 +106,13 @@ void modbus_io_tc_handler(void) {
 	}
 }
 
-uint32_t modbus_io_read(uint8_t *buffer) {
+uint16_t modbus_io_read(uint8_t *buffer) {
 	if(modbus_io_read_size == 0)
 		return 0;
 
 	memcpy((void*)buffer, (void*)modbus_io_read_buffer, modbus_io_read_size);
 
-	uint32_t count = modbus_io_read_size;
+	uint16_t count = modbus_io_read_size;
 
 	modbus_io_read_size = 0;
 

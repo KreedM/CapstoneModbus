@@ -7,10 +7,10 @@
 
 static uint8_t m_c_address;
 
-static uint32_t m_c_read_buffer_size;
+static uint16_t m_c_read_buffer_size;
 static uint8_t m_c_read_buffer[MODBUS_IO_BUFFER_SIZE];
 
-static uint32_t m_c_write_buffer_size;
+static uint16_t m_c_write_buffer_size;
 static uint8_t m_c_write_buffer[MODBUS_IO_BUFFER_SIZE];
 
 static uint8_t m_c_coils[MODBUS_CONTROLLER_COILS_BYTE_SIZE];
@@ -18,35 +18,29 @@ static uint8_t m_c_discrete_inputs[MODBUS_CONTROLLER_DISCRETE_INPUTS_BYTE_SIZE];
 static uint16_t m_c_holding_registers[MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE];
 static uint16_t m_c_input_registers[MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE];
 
-void modbus_controller_init(void) {
-	m_c_address = 0x42;
-
-	for(uint32_t i = 0; i < MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE; ++i)
-		m_c_holding_registers[i] = i;
-
-	for(uint32_t i = 0; i < MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE; ++i)
-			m_c_input_registers[i] = i;
+void modbus_controller_init(uint8_t address) {
+	m_c_address = address;
 }
 
 void process_modbus_message(void);
 
-uint16_t calculate_CRC(uint8_t *data, uint32_t length);
+uint16_t calculate_CRC(uint8_t *data, uint16_t length);
 
-char echo[2048];
+// char echo[2048];
 void modbus_controller_tick(void) {
 	m_c_read_buffer_size = modbus_io_read(m_c_read_buffer);
 
 	if(m_c_read_buffer_size < MODBUS_MIN_MESSAGE_BYTES)
 		return;
 
-	for (uint32_t i = 0; i < m_c_read_buffer_size; ++i)
-		sprintf(&echo[i * 3], "%02X ", m_c_read_buffer[i]);
+	// for (uint16_t i = 0; i < m_c_read_buffer_size; ++i)
+	// 	sprintf(&echo[i * 3], "%02X ", m_c_read_buffer[i]);
 
-	echo[m_c_read_buffer_size * 3] = '\r';
-	echo[m_c_read_buffer_size * 3 + 1] = '\n';
-	echo[m_c_read_buffer_size * 3 + 2] = '\0';
+	// echo[m_c_read_buffer_size * 3] = '\r';
+	// echo[m_c_read_buffer_size * 3 + 1] = '\n';
+	// echo[m_c_read_buffer_size * 3 + 2] = '\0';
 
-	debug_write((uint8_t*)echo, strlen(echo));
+	// debug_write((uint8_t*)echo, strlen(echo));
 
 	if(m_c_read_buffer[MODBUS_ADDRESS_INDEX] != m_c_address)
 		return;
@@ -77,11 +71,11 @@ void modbus_controller_exception(uint8_t exception) {	// Sets MSB of function co
 	m_c_write_buffer_size = MODBUS_MIN_MESSAGE_BYTES - MODBUS_CRC_BYTES + 1;
 }
 
-uint16_t calculate_CRC(uint8_t *data, uint32_t length) {
+uint16_t calculate_CRC(uint8_t *data, uint16_t length) {
     uint8_t temp;
     uint16_t crc = 0xFFFF;  						// Initialize CRC register
 
-    for (uint32_t i = 0; i < length; ++i)
+    for (uint16_t i = 0; i < length; ++i)
 	{
     	temp = data[i] ^ crc;  						// XOR byte with low byte of CRC
 		crc >>= 8;                                  // Shift CRC right 8 bits
@@ -155,8 +149,8 @@ void process_read_coils(void) {
 								 (m_c_read_buffer[MODBUS_QUANTITY_OF_COILS_INDEX + 1]);
 
 	if(
-		((((uint32_t)starting_address) + quantity_of_coils) > (MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3)) ||
-		(((((uint32_t)quantity_of_coils) + 7) >> 3) > 0xFF) ||												// Can only send back 255 bytes max
+		(((MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3) - starting_address) < quantity_of_coils) ||
+		(quantity_of_coils > 0x7D0) ||														// Can only send back 2000 coils max
 		(quantity_of_coils == 0)
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -164,12 +158,12 @@ void process_read_coils(void) {
 		return;
 	}
 
-	uint8_t byte_count = (((uint32_t)quantity_of_coils) + 7) >> 3;
+	uint8_t byte_count = (quantity_of_coils + 7) >> 3;
 
 	m_c_write_buffer[MODBUS_READ_BYTE_COUNT_INDEX] = byte_count;
 	m_c_write_buffer_size = MODBUS_READ_BYTE_COUNT_INDEX + 1;
 
-	uint32_t coil_address = starting_address;
+	uint16_t coil_address = starting_address;
 	for(uint8_t i = 0; i < byte_count; ++i) {
 		uint8_t byte_value = 0;
 
@@ -207,8 +201,8 @@ void process_read_discrete_inputs(void) {	// Functionally same as process_read_c
 								 (m_c_read_buffer[MODBUS_QUANTITY_OF_INPUTS_INDEX + 1]);
 
 	if(
-		((((uint32_t)starting_address) + quantity_of_coils) > (MODBUS_CONTROLLER_DISCRETE_INPUTS_BYTE_SIZE << 3)) ||
-		(((((uint32_t)quantity_of_coils) + 7) >> 3) > 0xFF) ||
+		(((MODBUS_CONTROLLER_DISCRETE_INPUTS_BYTE_SIZE << 3) - starting_address) < quantity_of_coils) ||
+		(quantity_of_coils > 0x7D0) ||
 		(quantity_of_coils == 0)
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -216,12 +210,12 @@ void process_read_discrete_inputs(void) {	// Functionally same as process_read_c
 		return;
 	}
 
-	uint8_t byte_count = (((uint32_t)quantity_of_coils) + 7) >> 3;
+	uint8_t byte_count = (quantity_of_coils + 7) >> 3;
 
 	m_c_write_buffer[MODBUS_READ_BYTE_COUNT_INDEX] = byte_count;
 	m_c_write_buffer_size = MODBUS_READ_BYTE_COUNT_INDEX + 1;
 
-	uint32_t coil_address = starting_address;
+	uint16_t coil_address = starting_address;
 	for(uint8_t i = 0; i < byte_count; ++i) {
 		uint8_t byte_value = 0;
 
@@ -259,8 +253,8 @@ void process_read_holding_registers(void) {
 									 (m_c_read_buffer[MODBUS_QUANTITY_OF_REGISTERS_INDEX + 1]);
 
 	if(
-		((((uint32_t)starting_address) + quantity_of_registers) > MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE) ||
-		(quantity_of_registers > 0x7F) ||																		// Can only send back 254 bytes max
+		((MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE - starting_address) < quantity_of_registers) ||
+		(quantity_of_registers > 0x7D) ||																		// Can only send back 125 registers max
 		(quantity_of_registers == 0)
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -271,7 +265,7 @@ void process_read_holding_registers(void) {
 	m_c_write_buffer[MODBUS_READ_BYTE_COUNT_INDEX] = (quantity_of_registers << 1);
 	m_c_write_buffer_size = MODBUS_READ_BYTE_COUNT_INDEX + 1;
 
-	for(uint32_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
+	for(uint16_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
 		m_c_write_buffer[m_c_write_buffer_size++] = m_c_holding_registers[i] >> 8;
 		m_c_write_buffer[m_c_write_buffer_size++] = m_c_holding_registers[i] & 0xFF;
 	}
@@ -297,8 +291,8 @@ void process_read_input_registers(void) {	// Functionally same as process_read_h
 									 (m_c_read_buffer[MODBUS_QUANTITY_OF_REGISTERS_INDEX + 1]);
 
 	if(
-		((((uint32_t)starting_address) + quantity_of_registers) > MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE) ||
-		(quantity_of_registers > 0x7F) ||
+		((MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE - starting_address) < quantity_of_registers) ||
+		(quantity_of_registers > 0x7D) ||
 		(quantity_of_registers == 0)
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -309,7 +303,7 @@ void process_read_input_registers(void) {	// Functionally same as process_read_h
 	m_c_write_buffer[MODBUS_READ_BYTE_COUNT_INDEX] = (quantity_of_registers << 1);
 	m_c_write_buffer_size = MODBUS_READ_BYTE_COUNT_INDEX + 1;
 
-	for(uint32_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
+	for(uint16_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
 		m_c_write_buffer[m_c_write_buffer_size++] = m_c_input_registers[i] >> 8;
 		m_c_write_buffer[m_c_write_buffer_size++] = m_c_input_registers[i] & 0xFF;
 	}
@@ -401,7 +395,8 @@ void process_write_multiple_coils(void) {
 								 (m_c_read_buffer[MODBUS_QUANTITY_OF_COILS_INDEX + 1]);
 
 	if(
-		((((uint32_t)starting_address) + quantity_of_coils) > (MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3)) ||
+		(((MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3) - starting_address) < quantity_of_coils) ||
+		(quantity_of_coils > 0x7B0) ||																			// Can only write 1968 coils max
 		(quantity_of_coils == 0)
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -412,7 +407,7 @@ void process_write_multiple_coils(void) {
 	uint8_t byte_count = m_c_read_buffer[MODBUS_WRITE_BYTE_COUNT_INDEX];
 
 	if(
-		(byte_count != ((((uint32_t)quantity_of_coils) + 7) >> 3)) ||
+		(byte_count != ((quantity_of_coils + 7) >> 3)) ||
 		(m_c_read_buffer_size - MODBUS_CRC_BYTES - (MODBUS_WRITE_BYTE_COUNT_INDEX + 1)) < byte_count
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -420,7 +415,7 @@ void process_write_multiple_coils(void) {
 		return;
 	}
 
-	uint32_t coil_address = starting_address;
+	uint16_t coil_address = starting_address;
 	for(uint8_t i = 0; i < byte_count; ++i) {
 		for(uint8_t bit = 0; bit < 8; ++bit) {
 			if(m_c_read_buffer[MODBUS_WRITE_BYTE_COUNT_INDEX + 1 + i] & (1 << bit))
@@ -463,7 +458,8 @@ void process_write_multiple_registers(void) {
 									 (m_c_read_buffer[MODBUS_QUANTITY_OF_REGISTERS_INDEX + 1]);
 
 	if(
-		(((uint32_t)starting_address) + quantity_of_registers) > MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE ||
+		((MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE - starting_address) < quantity_of_registers) ||
+		(quantity_of_registers > 0x7B) ||																		// Can only write 123 registers max
 		(quantity_of_registers == 0)
 	) {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -482,8 +478,8 @@ void process_write_multiple_registers(void) {
 		return;
 	}
 
-	uint32_t data_index = MODBUS_WRITE_BYTE_COUNT_INDEX + 1;
-	for(uint32_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
+	uint16_t data_index = MODBUS_WRITE_BYTE_COUNT_INDEX + 1;
+	for(uint16_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
 		m_c_holding_registers[i] = m_c_read_buffer[data_index++] << 8;
 		m_c_holding_registers[i] |= m_c_read_buffer[data_index++];
 	}

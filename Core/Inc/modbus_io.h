@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "stm32u5xx_hal.h"
 
-#define MODBUS_IO_BUFFER_SIZE 512
+#define MODBUS_IO_BUFFER_SIZE 256
 
 // Enables UART RXNE interrupt and disables UART TXE. Prescales timer to match baud rate, sets it to one pulse mode and configures CC1 & CC2 to character wait times
 void modbus_io_init(
@@ -13,9 +13,9 @@ void modbus_io_init(
 );
 
 // Make sure buffers are at most/least size MODBUS_IO_BUFFER_SIZE!
-uint32_t modbus_io_write(uint8_t *data, uint32_t len); 	// Returns number of bytes that'll be transmitted
+uint16_t modbus_io_write(uint8_t *data, uint16_t len);	// Returns number of bytes that'll be transmitted
 
-uint32_t modbus_io_read(uint8_t *buffer);				// Returns number of bytes that are read into buffer
+uint16_t modbus_io_read(uint8_t *buffer);				// Returns number of bytes that are read into buffer
 
 // Handlers clear any requisite flags
 void modbus_io_tc_handler(void);
