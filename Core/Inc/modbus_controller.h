@@ -20,11 +20,20 @@ void modbus_controller_tick(void); // Call every tick, checks if Modbus message 
 
 bool modbus_controller_read_coils(uint8_t *dst, uint16_t starting_address, uint16_t quantity_of_coils);
 bool modbus_controller_read_discrete_inputs(uint8_t *dst, uint16_t starting_address, uint16_t quantity_of_coils);
+
 bool modbus_controller_read_holding_registers(uint16_t *dst, uint16_t starting_address, uint16_t quantity_of_registers);
 bool modbus_controller_read_input_registers(uint16_t *dst, uint16_t starting_address, uint16_t quantity_of_registers);
+
 bool modbus_controller_write_single_coil(uint16_t coil_address, uint16_t coil_value);										// Pass in MODBUS_COIL_ON or MODBUS_COIL_OFF
-bool modbus_controller_write_single_register(uint16_t register_address, uint16_t register_value);
+bool modbus_controller_write_single_discrete_input(uint16_t coil_address, uint16_t coil_value);								// Pass in MODBUS_COIL_ON or MODBUS_COIL_OFF
+
+bool modbus_controller_write_single_holding_register(uint16_t register_address, uint16_t register_value);
+bool modbus_controller_write_single_input_register(uint16_t register_address, uint16_t register_value);
+
 bool modbus_controller_write_multiple_coils(uint8_t *src, uint16_t starting_address, uint16_t quantity_of_coils);			// Lowest address is src LSB, but subsequent bytes are all higher
-bool modbus_controller_write_multiple_registers(uint16_t *src, uint16_t register_address, uint16_t register_value);
+bool modbus_controller_write_multiple_discrete_inputs(uint8_t *src, uint16_t starting_address, uint16_t quantity_of_coils);	// Lowest address is src LSB, but subsequent bytes are all higher
+
+bool modbus_controller_write_multiple_holding_registers(uint16_t *src, uint16_t register_address, uint16_t register_value);
+bool modbus_controller_write_multiple_input_registers(uint16_t *src, uint16_t register_address, uint16_t register_value);
 
 #endif
