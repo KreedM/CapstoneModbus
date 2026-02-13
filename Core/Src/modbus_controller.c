@@ -702,7 +702,7 @@ void process_write_multiple_registers(void) {
 	modbus_controller_write();
 }
 
-bool modbus_controller_write_multiple_holding_registers(uint16_t *src, uint16_t register_address, uint16_t register_value) {
+bool modbus_controller_write_multiple_holding_registers(uint16_t *src, uint16_t starting_address, uint16_t quantity_of_registers) {
 	if(starting_address >= MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE)
 		return false;
 
@@ -722,7 +722,7 @@ bool modbus_controller_write_multiple_holding_registers(uint16_t *src, uint16_t 
 	return true;
 }
 
-bool modbus_controller_write_multiple_input_registers(uint16_t *src, uint16_t register_address, uint16_t register_value) {
+bool modbus_controller_write_multiple_input_registers(uint16_t *src, uint16_t starting_address, uint16_t quantity_of_registers) {
 	if(starting_address >= MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE)
 		return false;
 

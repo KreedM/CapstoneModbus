@@ -97,7 +97,7 @@ uint16_t modbus_io_read(uint8_t *buffer) {
 	if(modbus_io_read_size == 0)
 		return 0;
 
-	__HAL_TIM_DISABLE_IT(_modbus_io_htim, TIM_IT_CC2);
+	__HAL_TIM_DISABLE_IT(modbus_io_htim, TIM_IT_CC2);
 
 	memcpy((void*)buffer, (void*)modbus_io_read_buffer, modbus_io_read_size);
 
@@ -105,7 +105,7 @@ uint16_t modbus_io_read(uint8_t *buffer) {
 
 	modbus_io_read_size = 0;
 
-	__HAL_TIM_ENABLE_IT(_modbus_io_htim, TIM_IT_CC2);
+	__HAL_TIM_ENABLE_IT(modbus_io_htim, TIM_IT_CC2);
 
 	return count;
 }

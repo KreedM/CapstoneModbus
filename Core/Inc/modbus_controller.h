@@ -33,7 +33,7 @@ bool modbus_controller_write_single_input_register(uint16_t register_address, ui
 bool modbus_controller_write_multiple_coils(uint8_t *src, uint16_t starting_address, uint16_t quantity_of_coils);			// Lowest address is src LSB, but subsequent bytes are all higher
 bool modbus_controller_write_multiple_discrete_inputs(uint8_t *src, uint16_t starting_address, uint16_t quantity_of_coils);	// Lowest address is src LSB, but subsequent bytes are all higher
 
-bool modbus_controller_write_multiple_holding_registers(uint16_t *src, uint16_t register_address, uint16_t register_value);
-bool modbus_controller_write_multiple_input_registers(uint16_t *src, uint16_t register_address, uint16_t register_value);
+bool modbus_controller_write_multiple_holding_registers(uint16_t *src, uint16_t starting_address, uint16_t quantity_of_registers);
+bool modbus_controller_write_multiple_input_registers(uint16_t *src, uint16_t starting_address, uint16_t quantity_of_registers);
 
 #endif
