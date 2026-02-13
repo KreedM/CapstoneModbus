@@ -1,14 +1,9 @@
 #include "modbus_controller.h"
-#include "modbus_io.h"
-#include "debug.h"
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 
-static uint8_t m_c_address;
+static uint8_t 	m_c_address;
 
-static uint16_t m_c_read_buffer_size;
-static uint8_t m_c_read_buffer[MODBUS_IO_BUFFER_SIZE];
+static uint16_t	m_c_read_buffer_size;
+static uint8_t 	m_c_read_buffer[MODBUS_IO_BUFFER_SIZE];
 
 static uint16_t m_c_write_buffer_size;
 static uint8_t m_c_write_buffer[MODBUS_IO_BUFFER_SIZE];
@@ -26,21 +21,11 @@ void process_modbus_message(void);
 
 uint16_t calculate_CRC(uint8_t *data, uint16_t length);
 
-// char echo[2048];
 void modbus_controller_tick(void) {
 	m_c_read_buffer_size = modbus_io_read(m_c_read_buffer);
 
 	if(m_c_read_buffer_size < MODBUS_MIN_MESSAGE_BYTES)
 		return;
-
-	// for (uint16_t i = 0; i < m_c_read_buffer_size; ++i)
-	// 	sprintf(&echo[i * 3], "%02X ", m_c_read_buffer[i]);
-
-	// echo[m_c_read_buffer_size * 3] = '\r';
-	// echo[m_c_read_buffer_size * 3 + 1] = '\n';
-	// echo[m_c_read_buffer_size * 3 + 2] = '\0';
-
-	// debug_write((uint8_t*)echo, strlen(echo));
 
 	if(m_c_read_buffer[MODBUS_ADDRESS_INDEX] != m_c_address)
 		return;
@@ -183,6 +168,41 @@ void process_read_coils(void) {
 	modbus_controller_write();
 }
 
+bool modbus_controller_read_coils(uint8_t *dst, uint16_t starting_address, uint16_t quantity_of_coils) {
+	if(starting_address >= (MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3))
+		return false;
+
+	if(
+		(((MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3) - starting_address) < quantity_of_coils) ||
+		(quantity_of_coils > 0x7D0) ||														// Can only send back 2000 coils max
+		(quantity_of_coils == 0)
+	) {
+		return false;
+	}
+
+	uint16_t coil_address = starting_address;
+	uint8_t byte_count = (quantity_of_coils + 7) >> 3;
+	for(uint8_t i = 0; i < byte_count; ++i) {
+		uint8_t byte_value = 0;
+
+		for(uint8_t bit = 0; bit < 8; ++bit) {
+			if(m_c_coils[coil_address >> 3] & (1 << (coil_address & 0x07)))	// Get lower 3 bits for bit position
+				byte_value |= (1 << bit);
+
+			++coil_address;
+
+			if((coil_address - starting_address) >= quantity_of_coils)
+				break;
+		}
+
+		*dst = byte_value;
+
+		++dst;
+	}
+
+	return true;
+}
+
 // Function 0x02: Read Discrete Inputs
 void process_read_discrete_inputs(void) {	// Functionally same as process_read_coils
 	if((m_c_read_buffer_size - MODBUS_CRC_BYTES) < (MODBUS_QUANTITY_OF_INPUTS_INDEX + 2))
@@ -235,6 +255,41 @@ void process_read_discrete_inputs(void) {	// Functionally same as process_read_c
 	modbus_controller_write();
 }
 
+bool modbus_controller_read_discrete_inputs(uint8_t *dst, uint16_t starting_address, uint16_t quantity_of_coils) {
+	if(starting_address >= (MODBUS_CONTROLLER_DISCRETE_INPUTS_BYTE_SIZE << 3))
+		return false;
+
+	if(
+		(((MODBUS_CONTROLLER_DISCRETE_INPUTS_BYTE_SIZE << 3) - starting_address) < quantity_of_coils) ||
+		(quantity_of_coils > 0x7D0) ||
+		(quantity_of_coils == 0)
+	) {
+		return false;
+	}
+
+	uint16_t coil_address = starting_address;
+	uint8_t byte_count = (quantity_of_coils + 7) >> 3;
+	for(uint8_t i = 0; i < byte_count; ++i) {
+		uint8_t byte_value = 0;
+
+		for(uint8_t bit = 0; bit < 8; ++bit) {
+			if(m_c_discrete_inputs[coil_address >> 3] & (1 << (coil_address & 0x07)))
+				byte_value |= (1 << bit);
+
+			++coil_address;
+
+			if((coil_address - starting_address) >= quantity_of_coils)
+				break;
+		}
+
+		*dst = byte_value;
+
+		++dst;
+	}
+
+	return true;
+}
+
 // Function 0x03: Read Holding Registers
 void process_read_holding_registers(void) {
 	if((m_c_read_buffer_size - MODBUS_CRC_BYTES) < (MODBUS_QUANTITY_OF_REGISTERS_INDEX + 2))
@@ -271,6 +326,27 @@ void process_read_holding_registers(void) {
 	}
 
 	modbus_controller_write();
+}
+
+bool modbus_controller_read_holding_registers(uint16_t *dst, uint16_t starting_address, uint16_t quantity_of_registers) {
+	if(starting_address >= MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE)
+		return false;
+
+	if(
+		((MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE - starting_address) < quantity_of_registers) ||
+		(quantity_of_registers > 0x7D) ||																		// Can only send back 125 registers max
+		(quantity_of_registers == 0)
+	) {
+		return false;
+	}
+
+	for(uint16_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
+		*dst = m_c_holding_registers[i];
+
+		++dst;
+	}
+
+	return true;
 }
 
 // Function 0x04: Read Input Registers
@@ -311,6 +387,28 @@ void process_read_input_registers(void) {	// Functionally same as process_read_h
 	modbus_controller_write();
 }
 
+bool modbus_controller_read_input_registers(uint16_t *dst, uint16_t starting_address, uint16_t quantity_of_registers) {
+	if(starting_address >= MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE) {
+		return false;
+	}
+
+	if(
+		((MODBUS_CONTROLLER_INPUT_REGISTERS_SIZE - starting_address) < quantity_of_registers) ||
+		(quantity_of_registers > 0x7D) ||
+		(quantity_of_registers == 0)
+	) {
+		return false;
+	}
+
+	for(uint16_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
+		*dst = m_c_input_registers[i];
+
+		++dst;
+	}
+
+	return true;
+}
+
 // Function 0x05: Write Single Coil
 void process_write_single_coil(void) {
 	if((m_c_read_buffer_size - MODBUS_CRC_BYTES) < (MODBUS_WRITE_DATA_INDEX + 2))
@@ -328,9 +426,9 @@ void process_write_single_coil(void) {
 	uint16_t coil_value = (m_c_read_buffer[MODBUS_WRITE_DATA_INDEX] << 8) |
 						  (m_c_read_buffer[MODBUS_WRITE_DATA_INDEX + 1]);
 
-	if(coil_value == 0xFF00)
+	if(coil_value == MODBUS_COIL_ON)
 		m_c_coils[coil_address >> 3] |= (1 << (coil_address & 0x07));
-	else if(coil_value == 0x0000)
+	else if(coil_value == MODBUS_COIL_OFF)
 		m_c_coils[coil_address >> 3] &= ~(1 << (coil_address & 0x07));
 	else {
 		modbus_controller_exception(MODBUS_ILLEGAL_DATA_VALUE);
@@ -346,6 +444,20 @@ void process_write_single_coil(void) {
 	m_c_write_buffer_size = MODBUS_WRITE_DATA_INDEX + 2;	// +1 to include Lo portion of write data, +1 for count up to and including index
 
 	modbus_controller_write();
+}
+
+bool modbus_controller_write_single_coil(uint16_t coil_address, uint16_t coil_value) {
+	if(coil_address >= (MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3))
+		return false;
+
+	if(coil_value == MODBUS_COIL_ON)
+		m_c_coils[coil_address >> 3] |= (1 << (coil_address & 0x07));
+	else if(coil_value == MODBUS_COIL_OFF)
+		m_c_coils[coil_address >> 3] &= ~(1 << (coil_address & 0x07));
+	else
+		return false;
+
+	return true;
 }
 
 // Function 0x06: Write Single Register
@@ -375,6 +487,15 @@ void process_write_single_register(void) {
 	m_c_write_buffer_size = MODBUS_WRITE_DATA_INDEX + 2;
 
 	modbus_controller_write();
+}
+
+bool modbus_controller_write_single_register(uint16_t register_address, uint16_t register_value) {
+	if(register_address >= MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE)
+		return false;
+
+	m_c_holding_registers[register_address] = register_value;
+
+	return true;
 }
 
 // Function 0x0F: Write Multiple Coils
@@ -440,6 +561,39 @@ void process_write_multiple_coils(void) {
 	modbus_controller_write();
 }
 
+bool modbus_controller_write_multiple_coils(uint8_t *src, uint16_t starting_address, uint16_t quantity_of_coils) {
+	if(starting_address >= (MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3))
+		return false;
+
+	if(
+		(((MODBUS_CONTROLLER_COILS_BYTE_SIZE << 3) - starting_address) < quantity_of_coils) ||
+		(quantity_of_coils > 0x7B0) ||																			// Can only write 1968 coils max
+		(quantity_of_coils == 0)
+	) {
+		return false;
+	}
+
+	uint16_t coil_address = starting_address;
+	uint8_t byte_count = (quantity_of_coils + 7) >> 3;
+	for(uint8_t i = 0; i < byte_count; ++i) {
+		for(uint8_t bit = 0; bit < 8; ++bit) {
+			if((*src) & (1 << bit))
+				m_c_coils[coil_address >> 3] |= (1 << (coil_address & 0x07));
+			else
+				m_c_coils[coil_address >> 3] &= ~(1 << (coil_address & 0x07));
+
+			++coil_address;
+
+			if((coil_address - starting_address) >= quantity_of_coils)
+				break;
+		}
+
+		++src;
+	}
+
+	return true;
+}
+
 // Function 0x10: Write Multiple Registers
 void process_write_multiple_registers(void) {
 	if((m_c_read_buffer_size - MODBUS_CRC_BYTES) < (MODBUS_WRITE_BYTE_COUNT_INDEX + 1))
@@ -492,4 +646,25 @@ void process_write_multiple_registers(void) {
 	m_c_write_buffer_size = MODBUS_QUANTITY_OF_REGISTERS_INDEX + 2;
 
 	modbus_controller_write();
+}
+
+bool modbus_controller_write_multiple_registers(uint16_t *src, uint16_t register_address, uint16_t register_value) {
+	if(starting_address >= MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE)
+		return false;
+
+	if(
+		((MODBUS_CONTROLLER_HOLDING_REGISTERS_SIZE - starting_address) < quantity_of_registers) ||
+		(quantity_of_registers > 0x7B) ||																		// Can only write 123 registers max
+		(quantity_of_registers == 0)
+	) {
+		return false;
+	}
+
+	for(uint16_t i = starting_address; (i - starting_address) < quantity_of_registers; ++i) {
+		m_c_holding_registers[i] = *src;
+
+		++src;
+	}
+
+	return true;
 }
