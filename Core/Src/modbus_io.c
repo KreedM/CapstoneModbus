@@ -55,6 +55,7 @@ void modbus_io_init(UART_HandleTypeDef* _modbus_io_huart, uint32_t modbus_io_hua
 		case UART_STOPBITS_2:	bits_per_frame += 2; break;
 	}
 
+	modbus_io_htim->Instance->CR1 |= TIM_CR1_OPM;			// One pulse mode
 	modbus_io_htim->Instance->CCR1 = bits_per_frame * 3/2;	// 1.5 character times
 	modbus_io_htim->Instance->CCR2 = bits_per_frame * 7/2;	// 3.5 character times
 	modbus_io_htim->Instance->ARR = bits_per_frame * 7/2; 	// Just needs to be >= CCR2, stops earlier too
