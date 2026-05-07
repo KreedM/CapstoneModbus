@@ -12,10 +12,12 @@ static volatile uint16_t modbus_io_transmit_size = 0;
 static volatile uint8_t modbus_io_transmit_buffer[MODBUS_IO_BUFFER_SIZE];
 
 static volatile uint16_t modbus_io_receive_size = 0;
-static volatile uint8_t modbus_io_receive_buffer[MODBUS_IO_BUFFER_SIZE];
+static volatile uint8_t modbus_io_receive_buffer_1[MODBUS_IO_BUFFER_SIZE];		// Double buffers
+static volatile uint8_t modbus_io_receive_buffer_2[MODBUS_IO_BUFFER_SIZE];
+static volatile uint8_t *modbus_io_receive_buffer = modbus_io_receive_buffer_1;
 
 static volatile uint16_t modbus_io_read_size = 0;
-static volatile uint8_t modbus_io_read_buffer[MODBUS_IO_BUFFER_SIZE];
+static volatile uint8_t *modbus_io_read_buffer = modbus_io_receive_buffer_2;
 
 void modbus_io_init(UART_HandleTypeDef* _modbus_io_huart, uint32_t modbus_io_huart_freq, TIM_HandleTypeDef* _modbus_io_htim, uint32_t modbus_io_tim_freq) {
 	modbus_io_huart = _modbus_io_huart;
@@ -151,6 +153,7 @@ void modbus_io_rx_ne_handler(void) {
 void modbus_io_usart_handler(void) {
 	if(__HAL_UART_GET_FLAG(modbus_io_huart, UART_FLAG_TC) && modbus_io_huart->Instance->CR1 & USART_CR1_TCIE)
 		modbus_io_tc_handler();
+
 	if(__HAL_UART_GET_FLAG(modbus_io_huart, UART_FLAG_RXNE) && modbus_io_huart->Instance->CR1 & USART_CR1_RXNEIE_RXFNEIE)
 		modbus_io_rx_ne_handler();
 }
@@ -167,8 +170,10 @@ void modbus_io_3_5_char_handler(void) {
 	if(modbus_io_transmit_size > 0)							// Shouldn't ever happen since device should wait for frame end, process message, then reply
 		__HAL_UART_ENABLE_IT(modbus_io_huart, UART_IT_TC);
 
-	if(modbus_io_receive_size > 0) {						// Separate read buffer is used just in case application takes a while to read, avoids race conditions
-		memcpy((void*)modbus_io_read_buffer, (void*)modbus_io_receive_buffer, modbus_io_receive_size);
+	if(modbus_io_receive_size > 0) {
+		volatile uint8_t *temp = modbus_io_receive_buffer;	// Swap active buffer and read buffer
+		modbus_io_receive_buffer = modbus_io_read_buffer;
+		modbus_io_read_buffer = temp;
 
 		modbus_io_read_size = modbus_io_receive_size;
 

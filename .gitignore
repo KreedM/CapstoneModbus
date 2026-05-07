@@ -1,52 +1,15 @@
-#settings
+# settings
 .settings/
 
-#metadata
+# metadata
 .metadata/
 
-#Debug
+# builds
 Debug/
 debug/
 Release/
 release
+*.launch
 
-# Prerequisites
-*.d
-
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-*.bin
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# .DS_Store
+**/.DS_Store
