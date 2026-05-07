@@ -27,7 +27,10 @@ void modbus_controller_tick(void) {
 	if(m_c_read_buffer_size < MODBUS_MIN_MESSAGE_BYTES)
 		return;
 
-	if(m_c_read_buffer[MODBUS_ADDRESS_INDEX] != m_c_address)
+	if(
+		m_c_read_buffer[MODBUS_ADDRESS_INDEX] != m_c_address &&
+		m_c_read_buffer[MODBUS_ADDRESS_INDEX] != MODBUS_BROADCAST_ADDRESS
+	)
 		return;
 
 	uint16_t crc = (m_c_read_buffer[m_c_read_buffer_size - MODBUS_CRC_BYTES + 1] << 8) |
@@ -40,6 +43,9 @@ void modbus_controller_tick(void) {
 }
 
 void modbus_controller_write(void) {	// Appends CRC before transmitting
+	if(m_c_write_buffer[MODBUS_ADDRESS_INDEX] == MODBUS_BROADCAST_ADDRESS)	// Don't respond to broadcast write requests
+		return;
+
 	uint16_t crc = calculate_CRC(m_c_write_buffer, m_c_write_buffer_size);
 
 	m_c_write_buffer[m_c_write_buffer_size++] = crc & 0xFF;
@@ -80,6 +86,15 @@ void process_write_multiple_coils(void);
 void process_write_multiple_registers(void);
 
 void process_modbus_message(void) {	// Appends device address and function to m_c_write_buffer, then processes function
+	if(m_c_read_buffer[MODBUS_ADDRESS_INDEX] == MODBUS_BROADCAST_ADDRESS) {	// Don't process broadcast read requests
+		switch(m_c_read_buffer[MODBUS_FUNCTION_INDEX]) {
+			case MODBUS_READ_COILS:
+			case MODBUS_READ_DISCRETE_INPUTS:
+			case MODBUS_READ_HOLDING_REGISTERS:
+			case MODBUS_READ_INPUT_REGISTERS: return;
+		}
+	}
+
 	m_c_write_buffer[MODBUS_ADDRESS_INDEX] = m_c_read_buffer[MODBUS_ADDRESS_INDEX];
 	m_c_write_buffer[MODBUS_FUNCTION_INDEX] = m_c_read_buffer[MODBUS_FUNCTION_INDEX];
 
